@@ -1,6 +1,7 @@
 import './App.css';
 
 import React, { Component } from 'react';
+import { Button } from 'react-bootstrap';
 import Web3 from 'web3';
 
 import {
@@ -9,24 +10,18 @@ import {
 } from './constants';
 
 import Navbar from './Navbar';
+import ImportAccountModal from './ImportAccountModal';
 
 class App extends Component {
   constructor(props) {
     super(props);
-
-    this.state = {
-      wallet: {},
-      account: {},
-    }
-
-    this.ETH_NODE = GANACHE;
-  }
-
-  componentDidMount() {
+    
+    // TODO: Maybe this should go in a Web3 class?
     let web3;
-    if (!window.ethereum) {
-      web3 = new Web3(new Web3.providers.HttpProvider(this.ETH_NODE));
-    }
+    web3 = new Web3(new Web3.providers.HttpProvider(this.ETH_NODE));
+    if (!window.ethereum)
+      window.ethereum = web3;
+
     let wallet = web3.eth.accounts.wallet;
     wallet.load('!Password'); // TODO: Get password from user input
     if (wallet.length === 0) {
@@ -34,50 +29,75 @@ class App extends Component {
         .create(SEED_NUMBER_OF_ACCOUNTS, '')
         .save('!Password')
     }
-    const initialState = this.setInitialState(wallet, wallet[0])
-    this.setState(initialState, () => {
+
+    this.state = {
+      isImportingAccount: false,
+      ...this.setWalletState(wallet),
+    }
+    this.ETH_NODE = GANACHE;
+  }
+
+  setWalletState = (wallet) => {
+    const accounts = [];
+    if (wallet.length > 1) {
+      let i = 0;
+      while(i < wallet.length) {
+        accounts.push(wallet[i])
+        i++;
+      }
+    } else {
+      accounts.push(wallet[0]);
+    }
+    return {
+      wallet: wallet,
+      accounts: accounts,
+    }
+  }
+  
+  onImportAccount = (privateKey) => {
+    const { wallet } = this.state;
+    wallet.add(privateKey)
+    wallet.save('!Password')
+    this.setState({
+      isImportingAccount: false,
+      ...this.setWalletState(wallet),
+    }, () => {
       console.log(this.state);
     })
   }
 
-  setInitialState = (wallet, account) => {
-    return {
-      wallet: wallet,
-      account: account
-    }
-  }
-
-  setWalletState = (wallet) => {
-    return { wallet: wallet };
-  }
-
-  onImportAccount = () => {
-    // TODO: import account
+  onShowImportAccountModal = () => {
+    this.setState({ isImportingAccount: true });
   }
 
   renderImportAccount = () => {
     const actionText = 'Import Account';
     return (
-      <button
-        onClick={this.onImportAccount}
-        className='btn btn-primary'
+      <Button
+        variant='primary'
+        onClick={this.onShowImportAccountModal}
       >
         {actionText}
-      </button>
+      </Button>
     )
   }
 
   render() {
-    const { account } = this.state;
+    const { accounts, isImportingAccount } = this.state;
     return (
       <>
         <Navbar
-          accountAddress={account.address}
+          accountAddress={accounts[0].address}
         />
         <div className='container-fluid'>
           <br />
           {this.renderImportAccount()}
         </div>
+        <ImportAccountModal
+          show={isImportingAccount}
+          onClose={() => this.setState({ isImportingAccount: false })}
+          onConfirm={this.onImportAccount}
+        />
       </>
     )
   }
