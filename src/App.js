@@ -27,9 +27,13 @@ class App extends Component {
     if (!window.ethereum) {
       web3 = new Web3(new Web3.providers.HttpProvider(this.ETH_NODE));
     }
-    const wallet = web3.eth.accounts.wallet.create(
-      SEED_NUMBER_OF_ACCOUNTS, ''
-    );
+    let wallet = web3.eth.accounts.wallet;
+    wallet.load('!Password'); // TODO: Get password from user input
+    if (wallet.length === 0) {
+      wallet
+        .create(SEED_NUMBER_OF_ACCOUNTS, '')
+        .save('!Password')
+    }
     const initialState = this.setInitialState(wallet, wallet[0])
     this.setState(initialState, () => {
       console.log(this.state);
@@ -48,7 +52,7 @@ class App extends Component {
   }
 
   onImportAccount = () => {
-    // import account
+    // TODO: import account
   }
 
   renderImportAccount = () => {
@@ -64,9 +68,12 @@ class App extends Component {
   }
 
   render() {
+    const { account } = this.state;
     return (
       <>
-        <Navbar />
+        <Navbar
+          accountAddress={account.address}
+        />
         <div className='container-fluid'>
           <br />
           {this.renderImportAccount()}
