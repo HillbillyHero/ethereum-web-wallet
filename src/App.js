@@ -86,7 +86,8 @@ class App extends Component {
   mergeBalancesWithAccouts = (balances) => {
     let accounts = this.getAccounts(this.state.wallet);
     balances.forEach((balance, idx) => {
-      accounts[idx].balance = balance ? balance : "0";
+      accounts[idx].balance =
+        !balance ? 0 : window.web3.utils.fromWei(balance, 'ether');
     });
     return accounts;
   }
@@ -161,7 +162,7 @@ class App extends Component {
                 {account.address}
               </Card.Subtitle>
               <Card.Text>
-                0 ETH
+                {account.balance} ETH
               </Card.Text>
               {this.renderImportAccount()}
             </Card.Body>
