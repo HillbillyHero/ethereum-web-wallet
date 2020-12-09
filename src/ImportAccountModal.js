@@ -6,9 +6,10 @@ function ImportAccountModal(props) {
   const [privateKey, setPrivateKey] = useState('');
   return (
     <Modal
-      {...props}
-      size='lg'
       centered
+      size='lg'
+      show={props.show}
+      onClose={props.onClose}
       aria-labelledby='contained-modal-title-vcenter'
     >
       <Modal.Body>
@@ -26,7 +27,7 @@ function ImportAccountModal(props) {
               Remember to keep those private keys in your sock drawer 😉
             </Form.Text>
           </Form.Group>
-          <div class='d-flex justify-content-end'>
+          <div className='d-flex justify-content-end'>
             <Button
               onClick={onClose}
               variant='secondary'
