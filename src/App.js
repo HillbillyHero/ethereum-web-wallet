@@ -2,7 +2,7 @@ import './App.css';
 
 import Web3 from 'web3';
 import React, { Component } from 'react';
-import { Button, Card, Container } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 
 import {
   ETH_NODE,
@@ -11,6 +11,7 @@ import {
 
 import Navbar from './Navbar';
 import ImportAccountModal from './ImportAccountModal';
+import Account from './Account';
 
 class App extends Component {
   constructor(props) {
@@ -152,23 +153,9 @@ class App extends Component {
           accounts={accounts}
           onSelectAccount={this.onSelectAccount}
         />
-        <Container fluid className='pt-3'>
-          <Card>
-            <Card.Body>
-              <Card.Title>
-                {account.niceName}
-              </Card.Title>
-              <Card.Subtitle className='mb-2' style={{ color: 'grey' }}>
-                {account.address}
-              </Card.Subtitle>
-              <Card.Text>
-                {account.balance} ETH
-              </Card.Text>
-              {this.renderImportAccount()}
-            </Card.Body>
-          </Card>
-        </Container>
-
+        <Account account={account}>
+          {this.renderImportAccount()}
+        </Account>
         <ImportAccountModal
           show={isImportingAccount}
           onClose={() => this.setState({ isImportingAccount: false })}
