@@ -1,11 +1,11 @@
 import './App.css';
 
-import React, { Component } from 'react';
-import { Button } from 'react-bootstrap';
 import Web3 from 'web3';
+import React, { Component } from 'react';
+import { Button, Card, Container } from 'react-bootstrap';
 
 import {
-  GANACHE,
+  ETH_NODE,
   SEED_NUMBER_OF_ACCOUNTS,
 } from './constants';
 
@@ -16,12 +16,25 @@ class App extends Component {
   constructor(props) {
     super(props);
     
+    this.state = {
+      wallet: {},
+      account: {},
+      accounts: [],
+      
+      loading: true,
+      isImportingAccount: false,
+    }
+  }
+
+  componentDidMount() {
     // TODO: Maybe this should go in a Web3 class?
     let web3;
-    web3 = new Web3(new Web3.providers.HttpProvider(this.ETH_NODE));
-    if (!window.ethereum)
-      window.ethereum = web3;
+    web3 = new Web3(new Web3.providers.HttpProvider(ETH_NODE));
+    if (!window.ethereum) {
+      window.web3 = web3;
+    }
 
+    // Load or seed wallet with accounts
     let wallet = web3.eth.accounts.wallet;
     wallet.load('!Password'); // TODO: Get password from user input
     if (wallet.length === 0) {
@@ -30,44 +43,87 @@ class App extends Component {
         .save('!Password')
     }
 
-    this.state = {
-      isImportingAccount: false,
-      ...this.setWalletState(wallet),
-    }
-    this.ETH_NODE = GANACHE;
+    this.setState({ wallet: wallet });
+
+    this.getBalances(wallet)
+      .then(this.mergeBalancesWithAccouts)
+      .then(this.setAccounts)
+      .catch(e => console.log(e))
   }
 
-  setWalletState = (wallet) => {
+  getBalances = (wallet) => {
+    let i = 0;
+    const promises = [];
+    while(i < wallet.length) {
+      promises.push(
+        window.web3.eth.getBalance(wallet[i].address)
+      );
+      i++
+    }
+    return Promise.all(promises);
+  }
+
+  getAccounts = (wallet) => {
     const accounts = [];
     if (wallet.length > 1) {
       let i = 0;
       while(i < wallet.length) {
-        accounts.push(wallet[i])
+        accounts.push({
+          niceName: `Account ${i+1}`,
+          ...wallet[i],
+        });
         i++;
       }
     } else {
-      accounts.push(wallet[0]);
+      accounts.push({
+        niceName: `Account 1`,
+        ...wallet[0],
+      });
     }
-    return {
-      wallet: wallet,
-      accounts: accounts,
-    }
+    return accounts;
+  }
+
+  mergeBalancesWithAccouts = (balances) => {
+    let accounts = this.getAccounts(this.state.wallet);
+    balances.forEach((balance, idx) => {
+      accounts[idx].balance = balance ? balance : "0";
+    });
+    return accounts;
+  }
+
+  setAccounts = (accounts) => {
+    this.setState({
+      account: accounts[0],
+      accounts: accounts
+    }, () => console.log(this.state));
   }
   
   onImportAccount = (privateKey) => {
     const { wallet } = this.state;
     wallet.add(privateKey)
     wallet.save('!Password')
-    this.setState({
-      isImportingAccount: false,
-      ...this.setWalletState(wallet),
-    }, () => {
-      console.log(this.state);
-    })
+
+    this.getBalances(wallet)
+      .then(this.mergeBalancesWithAccouts)
+      .then((accounts) => {
+        this.setState({
+          wallet: wallet,
+          // TODO: set default account when importing an account
+          account: accounts[accounts.length-1],
+          accounts: accounts,
+          isImportingAccount: false,
+        })
+      });
   }
 
   onShowImportAccountModal = () => {
     this.setState({ isImportingAccount: true });
+  }
+
+  onSelectAccount = (account) => {
+    this.setState({
+      account: this.state.accounts[account.index]
+    })
   }
 
   renderImportAccount = () => {
@@ -83,24 +139,43 @@ class App extends Component {
   }
 
   render() {
-    const { accounts, isImportingAccount } = this.state;
+    const {
+      account,
+      accounts,
+      isImportingAccount,
+    } = this.state;
     return (
       <>
         <Navbar
-          accountAddress={accounts[0].address}
+          account={account}
+          accounts={accounts}
+          onSelectAccount={this.onSelectAccount}
         />
-        <div className='container-fluid'>
-          <br />
-          {this.renderImportAccount()}
-        </div>
+        <Container fluid className='pt-3'>
+          <Card>
+            <Card.Body>
+              <Card.Title>
+                {account.niceName}
+              </Card.Title>
+              <Card.Subtitle className='mb-2' style={{ color: 'grey' }}>
+                {account.address}
+              </Card.Subtitle>
+              <Card.Text>
+                0 ETH
+              </Card.Text>
+              {this.renderImportAccount()}
+            </Card.Body>
+          </Card>
+        </Container>
+
         <ImportAccountModal
           show={isImportingAccount}
           onClose={() => this.setState({ isImportingAccount: false })}
           onConfirm={this.onImportAccount}
-        />
+        /> 
       </>
     )
   }
-}
+};
 
 export default App;
